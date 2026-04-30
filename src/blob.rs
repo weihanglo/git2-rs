@@ -92,10 +92,15 @@ pub struct BlobWriter<'repo> {
 
 impl<'repo> BlobWriter<'repo> {
     /// Finalize blob writing stream and write the blob to the object db
-    pub fn commit(mut self) -> Result<Oid, Error> {
+    pub fn commit(mut self,
+        #[cfg(feature = "unstable-sha256")] format: crate::ObjectFormat
+    ) -> Result<Oid, Error> {
         // After commit we already doesn't need cleanup on drop
         self.need_cleanup = false;
-        let mut raw = crate::util::zeroed_raw_oid();
+        let mut raw = crate::util::zeroed_raw_oid(
+            #[cfg(feature = "unstable-sha256")]
+            format
+        );
         unsafe {
             try_call!(raw::git_blob_create_fromstream_commit(&mut raw, self.raw));
             Ok(Binding::from_raw(&raw as *const _))

@@ -1375,7 +1375,7 @@ pub struct git_diff_options {
 }
 
 git_enum! {
-    pub enum git_oid_t {
+    pub enum git_oid_t: c_uchar {
         GIT_OID_SHA1 = 1,
         #[cfg(feature = "unstable-sha256")]
         GIT_OID_SHA256 = 2,

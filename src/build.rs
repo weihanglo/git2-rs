@@ -76,6 +76,8 @@ pub type RemoteCreate<'cb> =
 pub struct TreeUpdateBuilder {
     updates: Vec<raw::git_tree_update>,
     paths: Vec<CString>,
+    #[cfg(feature = "unstable-sha256")]
+    format: crate::ObjectFormat,
 }
 
 /// A builder struct for configuring checkouts of a repository.
@@ -701,6 +703,7 @@ extern "C" fn notify_cb(
 
 unsafe impl Send for TreeUpdateBuilder {}
 
+#[cfg(not(feature = "unstable-sha256"))]
 impl Default for TreeUpdateBuilder {
     fn default() -> Self {
         Self::new()
@@ -709,10 +712,15 @@ impl Default for TreeUpdateBuilder {
 
 impl TreeUpdateBuilder {
     /// Create a new empty series of updates.
-    pub fn new() -> Self {
+    pub fn new(
+        #[cfg(feature = "unstable-sha256")]
+        format: crate::OidFormat,
+    ) -> Self {
         Self {
             updates: Vec::new(),
             paths: Vec::new(),
+            #[cfg(feature = "unstable-sha256")]
+            format,
         }
     }
 
@@ -723,7 +731,10 @@ impl TreeUpdateBuilder {
         self.paths.push(path);
         self.updates.push(raw::git_tree_update {
             action: raw::GIT_TREE_UPDATE_REMOVE,
-            id: crate::util::zeroed_raw_oid(),
+            id: crate::util::zeroed_raw_oid(
+                #[cfg(feature = "unstable-sha256")]
+                self.format
+            ),
             filemode: raw::GIT_FILEMODE_UNREADABLE,
             path: path_ptr,
         });
@@ -752,7 +763,12 @@ impl TreeUpdateBuilder {
     ///
     /// The baseline tree must exist in the specified repository.
     pub fn create_updated(&mut self, repo: &Repository, baseline: &Tree<'_>) -> Result<Oid, Error> {
-        let mut ret = crate::util::zeroed_raw_oid();
+        // TODO: What if the object formats of `self`/`repo`/`baseline` do not agree?
+
+        let mut ret = crate::util::zeroed_raw_oid(
+            #[cfg(feature = "unstable-sha256")]
+            self.format
+        );
         unsafe {
             try_call!(raw::git_tree_create_updated(
                 &mut ret,

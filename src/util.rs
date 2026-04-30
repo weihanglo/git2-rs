@@ -270,8 +270,25 @@ fn fixup_windows_path(path: CString) -> Result<CString, Error> {
 
 /// Creates a zeroed git_oid structure.
 #[inline]
-pub(crate) fn zeroed_raw_oid() -> raw::git_oid {
-    unsafe { std::mem::zeroed() }
+pub(crate) fn zeroed_raw_oid(
+    #[cfg(feature = "unstable-sha256")]
+    format: crate::ObjectFormat
+) -> raw::git_oid {
+    #[cfg(not(feature = "unstable-sha256"))]
+    {
+        unsafe { std::mem::zeroed() }
+    }
+    #[cfg(feature = "unstable-sha256")]
+    match format {
+        crate::ObjectFormat::Sha1 => raw::git_oid {
+            kind: raw::GIT_OID_SHA1 as raw::git_oid_t,
+            id: [0u8; raw::GIT_OID_MAX_SIZE],
+        },
+        crate::ObjectFormat::Sha256 => raw::git_oid {
+            kind: raw::GIT_OID_SHA256 as raw::git_oid_t,
+            id: [0u8; raw::GIT_OID_MAX_SIZE],
+        },
+    }
 }
 
 #[cfg(test)]

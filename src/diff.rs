@@ -1565,7 +1565,7 @@ impl DiffPatchidOptions {
 mod tests {
     #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
-    use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
+    use crate::{DiffLineType, DiffOptions, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1581,7 +1581,7 @@ mod tests {
         assert_eq!(stats.deletions(), 0);
         assert_eq!(stats.files_changed(), 0);
         let patchid = diff.patchid(None).unwrap();
-        assert_ne!(patchid, Oid::zero());
+        assert!(!patchid.is_zero())
     }
 
     #[test]

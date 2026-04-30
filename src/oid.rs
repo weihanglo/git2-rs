@@ -47,6 +47,22 @@ pub struct Oid {
 }
 
 impl Oid {
+    const ZERO_SHA1: Self = Oid {
+        raw: raw::git_oid {
+            #[cfg(feature = "unstable-sha256")]
+            kind: raw::GIT_OID_SHA1,
+            id: [0u8; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
+    #[cfg(feature = "unstable-sha256")]
+    const ZERO_SHA256: Self = Oid {
+        raw: raw::git_oid {
+            kind: raw::GIT_OID_SHA256,
+            id: [0u8; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
     /// Parse a hex-formatted object id into an Oid structure.
     ///
     /// # Errors
@@ -117,9 +133,17 @@ impl Oid {
     }
 
     /// Creates an all zero Oid structure.
-    pub fn zero() -> Oid {
-        Oid {
-            raw: crate::util::zeroed_raw_oid(),
+    pub fn zero(
+        #[cfg(feature = "unstable-sha256")]
+        format: crate::ObjectFormat
+    ) -> Oid {
+        #[cfg(not(feature = "unstable-sha256"))]
+        return Self::ZERO_SHA1;
+
+        #[cfg(feature = "unstable-sha256")]
+        match format {
+            ObjectFormat::Sha1 => Self::ZERO_SHA1,
+            ObjectFormat::Sha256 => Self::ZERO_SHA256,
         }
     }
 
@@ -559,7 +583,26 @@ mod tests {
 
     #[test]
     fn zero_is_zero() {
+        #[cfg(not(feature = "unstable-sha256"))]
         assert!(Oid::zero().is_zero());
+
+        #[cfg(feature = "unstable-sha256")]
+        {
+            assert!(Oid::zero(crate::ObjectFormat::Sha1).is_zero());
+            assert!(Oid::zero(crate::ObjectFormat::Sha256).is_zero());
+        }
+    }
+
+    #[test]
+    fn zero_has_object_format() {
+        #[cfg(not(feature = "unstable-sha256"))]
+        let _ = Oid::zero().object_format();
+
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let _ = Oid::zero(crate::ObjectFormat::Sha1).object_format();
+            let _ = Oid::zero(crate::ObjectFormat::Sha256).object_format();
+        }
     }
 
     #[test]

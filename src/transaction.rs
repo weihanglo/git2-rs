@@ -310,7 +310,10 @@ mod tests {
 
         let mut tx = t!(repo.transaction());
         assert!(matches!(
-            tx.set_target("refs/heads/main", Oid::zero(), None, "set main to zero"),
+            tx.set_target("refs/heads/main", Oid::zero(
+                #[cfg(feature = "unstable-sha256")]
+                repo.object_format(),
+            ), None, "set main to zero"),
             Err(e) if is_not_locked_err(&e)
         ))
     }
