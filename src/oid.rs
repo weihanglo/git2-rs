@@ -104,7 +104,7 @@ impl Oid {
     ///
     /// * is empty
     /// * is longer than 40 hex with SHA1 object format
-    /// * is longer than 64 hex with SHA1 object format
+    /// * is longer than 64 hex with SHA256 object format
     /// * contains any non-hex characters
     pub fn from_str_ext(s: &str, format: ObjectFormat) -> Result<Oid, Error> {
         crate::init();
@@ -254,8 +254,8 @@ impl Oid {
         Ok(Oid { raw: out })
     }
 
-    /// View this OID as a byte-slice bytes in logcial length.
-    /// 20 for SHA1 and 32 for SHA256.
+    /// View this OID as a byte-slice in its logical length:
+    /// 20 bytes for SHA1, 32 bytes for SHA256.
     pub fn as_bytes(&self) -> &[u8] {
         #[cfg(not(feature = "unstable-sha256"))]
         {
@@ -274,8 +274,11 @@ impl Oid {
 
     /// View the full underlying byte buffer of this OID.
     ///
-    /// * 20 bytes in length if the feature `unstable-sha256` is not enabled.
-    /// * 32 bytes in length if the feature `unstable-sha256` is enabled.
+    /// The buffer is always `GIT_OID_MAX_SIZE` bytes long:
+    ///
+    /// * 20 bytes if the feature `unstable-sha256` is not enabled.
+    /// * 32 bytes if the feature `unstable-sha256` is enabled,
+    ///   even when the OID is SHA1 (the trailing bytes are zero-padding).
     pub fn raw_bytes(&self) -> &[u8] {
         &self.raw.id
     }
@@ -383,6 +386,18 @@ impl AsRef<[u8]> for Oid {
         self.as_bytes()
     }
 }
+
+// Sanity-check libgit2's OID size constants to keep the docs and the
+// public API surface honest. If any of these break, the doc comments on
+// `Oid::as_bytes` / `Oid::raw_bytes` need to be revisited.
+#[cfg(not(feature = "unstable-sha256"))]
+const _: () = assert!(raw::GIT_OID_MAX_SIZE == 20);
+#[cfg(feature = "unstable-sha256")]
+const _: () = {
+    assert!(raw::GIT_OID_SHA1_SIZE == 20);
+    assert!(raw::GIT_OID_SHA256_SIZE == 32);
+    assert!(raw::GIT_OID_MAX_SIZE == 32);
+};
 
 #[cfg(test)]
 mod tests {

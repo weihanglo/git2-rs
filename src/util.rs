@@ -275,7 +275,11 @@ fn fixup_windows_path(path: CString) -> Result<CString, Error> {
 /// `git_oid_t` even transiently.
 #[inline]
 pub(crate) fn zeroed_raw_oid() -> raw::git_oid {
-    crate::Oid::ZERO_SHA1.raw
+    raw::git_oid {
+        #[cfg(feature = "unstable-sha256")]
+        kind: raw::GIT_OID_SHA1 as libc::c_uchar,
+        id: [0; raw::GIT_OID_MAX_SIZE],
+    }
 }
 
 #[cfg(test)]
