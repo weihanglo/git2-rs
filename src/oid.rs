@@ -4,8 +4,6 @@ use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::str;
 
-use crate::ErrorClass;
-use crate::ErrorCode;
 use crate::{raw, Error, IntoCString, ObjectType};
 
 use crate::util::{c_cmp_to_ordering, Binding};
@@ -135,11 +133,10 @@ impl Oid {
         #[cfg(not(feature = "unstable-sha256"))]
         {
             if bytes.len() != raw::GIT_OID_SHA1_SIZE {
-                return Err(Error::new(
-                    ErrorCode::GenericError,
-                    ErrorClass::None,
-                    format!("raw byte array must be 20 bytes, but got {}", bytes.len()),
-                ));
+                return Err(Error::from_str(&format!(
+                    "raw byte array must be 20 bytes, but got {}",
+                    bytes.len()
+                )));
             }
             unsafe {
                 try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
@@ -152,11 +149,10 @@ impl Oid {
                 raw::GIT_OID_SHA1_SIZE => raw::GIT_OID_SHA1,
                 raw::GIT_OID_SHA256_SIZE => raw::GIT_OID_SHA256,
                 _ => {
-                    return Err(Error::new(
-                        ErrorCode::GenericError,
-                        ErrorClass::None,
-                        format!("raw byte array must be 20 bytes (SHA1) or 32 bytes (SHA256), but got {}", bytes.len()),
-                    ));
+                    return Err(Error::from_str(&format!(
+                        "raw byte array must be 20 bytes (SHA1) or 32 bytes (SHA256), but got {}",
+                        bytes.len()
+                    )));
                 }
             };
             unsafe {
