@@ -895,7 +895,7 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let mut index = Index::new_ext(ObjectFormat::Sha1).unwrap();
+        let mut index = Index::new().unwrap();
         assert!(index.add_path(&Path::new(".")).is_err());
         index.clear().unwrap();
         assert_eq!(index.len(), 0);
