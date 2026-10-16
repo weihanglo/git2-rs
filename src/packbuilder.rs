@@ -8,7 +8,7 @@ use std::str;
 use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
 use crate::IntoCString;
-use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
+use crate::{panic, raw, Buf, Error, ObjectFormat, Oid, Repository, Revwalk};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 /// Stages that are reported by the `PackBuilder` progress callback.
@@ -187,11 +187,21 @@ impl<'repo> PackBuilder<'repo> {
     #[deprecated = "use `name()` to retrieve the filename"]
     #[allow(deprecated)]
     pub fn hash(&self) -> Option<Oid> {
-        if self.object_count() == 0 {
-            unsafe { Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw))) }
-        } else {
-            None
+        if self.object_count() != 0 {
+            return None;
         }
+        // `git_packbuilder_hash` reinterprets the raw pack checksum as a
+        // `git_oid`, which is garbage since libgit2 2.0 added a type byte to
+        // `git_oid`. The pack name is the hex-encoded checksum, so parse it.
+        let Some(name) = self.name().ok().flatten() else {
+            return Some(Oid::ZERO_SHA1);
+        };
+        let format = if name.len() == raw::GIT_OID_SHA256_HEXSIZE {
+            ObjectFormat::Sha256
+        } else {
+            ObjectFormat::Sha1
+        };
+        Oid::from_str_ext(name, format).ok()
     }
 
     /// Get the unique name for the resulting packfile.
@@ -317,7 +327,6 @@ mod tests {
             .collect::<Vec<u8>>()
     }
 
-    #[cfg(feature = "unstable-sha256")]
     fn empty_pack_header_sha256() -> Vec<u8> {
         pack_header(0)
             .iter()
@@ -355,7 +364,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -373,7 +381,6 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         t!(builder.write(repo.path(), 0));
-        #[cfg(not(feature = "unstable-sha256"))]
         #[allow(deprecated)]
         {
             let oid = crate::Oid::from_str(EMPTY_PACKFILE_OID).unwrap();
@@ -383,7 +390,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_object_format() {
         // SHA256 hash of a packfile constructed without any objects in it
         const EMPTY_PACKFILE_OID_SHA256: &str =
@@ -408,7 +414,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_foreach_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -434,7 +439,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -462,7 +466,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -491,7 +494,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -517,7 +519,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -541,7 +542,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -566,7 +566,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());

@@ -17,6 +17,14 @@
 
 ### Changed
 
+- ❗ Updated to libgit2 2.0.0-rc.1 via libgit2-sys 0.19.0.
+  A system libgit2 must now be 2.0.x.
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  and `ObjectFormat::Sha256`, `Oid::ZERO_SHA256`, and the `*_ext` methods are always available.
+- ❗ `Reference` equality and ordering now take the reference name into account,
+  following [libgit2#6346](https://github.com/libgit2/libgit2/pull/6346).
+- ❗ `RepositoryInitOptions::workdir_path()` no longer appends `.git` to the repository path.
 - ❗ `Branch::name()` now returns `Result<&str, Error>` instead of `Result<Option<&str>, Error>`,
   and a non-UTF-8 name is an error.
   [#1274](https://github.com/rust-lang/git2-rs/pull/1274)
@@ -34,6 +42,12 @@
   [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+
+### Deprecated
+
+- Deprecated `ConfigLevel::ProgramData`, which libgit2 2.0 ignores.
+- Deprecated `RepositoryInitOptions::no_dotgit_dir()`, which no longer has an effect.
+  Setting `workdir_path()` gives the same layout.
 
 ### Fixed
 

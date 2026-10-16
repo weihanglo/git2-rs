@@ -328,21 +328,13 @@ impl Diff<'static> {
         let data = buffer.as_ptr() as *const c_char;
         let len = buffer.len();
         // NOTE: Doesn't depend on repo, so lifetime can be 'static
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len, &mut opts));
-            }
+        let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe {
+            try_call!(raw::git_diff_from_buffer_ext(
+                &mut diff, data, len, &mut opts
+            ));
         }
         Ok(unsafe { Diff::from_raw(diff) })
     }
@@ -1605,7 +1597,6 @@ impl Default for DiffPatchidOptions {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
     use crate::{Delta, DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
@@ -1915,7 +1906,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn diff_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let diff = repo.diff_tree_to_workdir(None, None).unwrap();
@@ -1931,7 +1921,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn diff_from_buffer_sha256() {
         // Minimal patch with SHA256 OID (64 chars)
         let patch = b"diff --git a/file.txt b/file.txt

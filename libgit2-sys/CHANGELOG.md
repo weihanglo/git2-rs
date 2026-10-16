@@ -7,11 +7,43 @@
 
 - Added bindings for `git_config_backend_from_string` and `git_config_backend_memory_options`.
   [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+- Added bindings for new libgit2 2.0 APIs:
+  `git_oid_from_string`, `git_oid_from_prefix`, `git_oid_from_raw`,
+  `git_object_id_options`, `git_object_id_options_init`,
+  `git_object_id_from_buffer`, `git_object_id_from_file`,
+  `git_object_type_is_valid`, `git_index_options_init`,
+  `git_refdb_t` with `git_repository_init_options::refdb_type`,
+  `git_refdb_backend_init_flag_t`, and the new `GIT_FEATURE_*` flags.
+- Added the `*_ext` functions
+  `git_diff_from_buffer_ext`, `git_index_new_ext`, `git_index_open_ext`,
+  `git_odb_new_ext`, `git_odb_open_ext`, and `git_repository_new_ext`.
+  They replace the `unstable-sha256` signatures of their base functions,
+  which keep their SHA-1-only signatures.
 
 ### Changed
 
+- ❗ Updated to libgit2 2.0.0-rc.1.
+  A system libgit2 must now be `>=2.0.0, <2.1.0`.
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  and `git_oid` always has room for a SHA-256 ID and its type.
+- ❗ `git_refdb_backend` has a new `init` callback after `version`.
+- The vendored build now compiles libgit2's bundled reftable library.
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+
+### Deprecated
+
+- Deprecated what libgit2 2.0 deprecates:
+  `GIT_OID_RAWSZ`, `GIT_OID_HEXSZ`,
+  `git_oid_fromraw`, `git_oid_fromstr`, `git_oid_fromstrn`, `git_oid_fromstrp`,
+  `git_odb_hash`, `git_odb_hashfile`, `git_object_typeisloose`,
+  `GIT_CONFIG_LEVEL_PROGRAMDATA`, `git_config_find_programdata`,
+  and `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR` (now `0`).
+
+### Removed
+
+- ❗ Removed `GIT_OBJECT_OFS_DELTA` and `GIT_OBJECT_REF_DELTA`, as libgit2 2.0 did.
 
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
