@@ -32,18 +32,21 @@
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
 
-### Deprecated
-
-- Deprecated what libgit2 2.0 deprecates:
-  `GIT_OID_RAWSZ`, `GIT_OID_HEXSZ`,
-  `git_oid_fromraw`, `git_oid_fromstr`, `git_oid_fromstrn`, `git_oid_fromstrp`,
-  `git_odb_hash`, `git_odb_hashfile`, `git_object_typeisloose`,
-  `GIT_CONFIG_LEVEL_PROGRAMDATA`, `git_config_find_programdata`,
-  and `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR` (now `0`).
-
 ### Removed
 
 - ❗ Removed `GIT_OBJECT_OFS_DELTA` and `GIT_OBJECT_REF_DELTA`, as libgit2 2.0 did.
+- ❗ Removed bindings that libgit2 2.0 deprecates:
+  - `GIT_OID_RAWSZ` and `GIT_OID_HEXSZ`:
+    use `GIT_OID_SHA1_SIZE` and `GIT_OID_SHA1_HEXSIZE`.
+  - `git_oid_fromraw`, `git_oid_fromstr`, `git_oid_fromstrn`, and `git_oid_fromstrp`:
+    use `git_oid_from_raw`, `git_oid_from_string`, and `git_oid_from_prefix`.
+  - `git_odb_hash` and `git_odb_hashfile`:
+    use `git_object_id_from_buffer` and `git_object_id_from_file`.
+  - `git_object_typeisloose`: use `git_object_type_is_valid`.
+  - `git_packbuilder_hash` and `git_indexer_hash`:
+    use `git_packbuilder_name` and `git_indexer_name`.
+  - `GIT_CONFIG_LEVEL_PROGRAMDATA`, `git_config_find_programdata`,
+    and `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR`, which libgit2 ignores.
 
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
