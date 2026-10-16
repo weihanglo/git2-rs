@@ -43,11 +43,12 @@
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
 
-### Deprecated
+### Removed
 
-- Deprecated `ConfigLevel::ProgramData`, which libgit2 2.0 ignores.
-- Deprecated `RepositoryInitOptions::no_dotgit_dir()`, which no longer has an effect.
+- ❗ Removed `ConfigLevel::ProgramData`, which libgit2 2.0 ignores.
+- ❗ Removed `RepositoryInitOptions::no_dotgit_dir()`, which no longer has an effect.
   Setting `workdir_path()` gives the same layout.
+- ❗ Removed the deprecated `PackBuilder::hash()`. Use `PackBuilder::name()` instead.
 
 ### Fixed
 

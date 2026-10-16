@@ -8,7 +8,7 @@ use std::str;
 use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
 use crate::IntoCString;
-use crate::{panic, raw, Buf, Error, ObjectFormat, Oid, Repository, Revwalk};
+use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 /// Stages that are reported by the `PackBuilder` progress callback.
@@ -181,29 +181,6 @@ impl<'repo> PackBuilder<'repo> {
         unsafe { raw::git_packbuilder_written(self.raw) }
     }
 
-    /// Get the packfile's hash. A packfile's name is derived from the sorted
-    /// hashing of all object names. This is only correct after the packfile
-    /// has been written.
-    #[deprecated = "use `name()` to retrieve the filename"]
-    #[allow(deprecated)]
-    pub fn hash(&self) -> Option<Oid> {
-        if self.object_count() != 0 {
-            return None;
-        }
-        // `git_packbuilder_hash` reinterprets the raw pack checksum as a
-        // `git_oid`, which is garbage since libgit2 2.0 added a type byte to
-        // `git_oid`. The pack name is the hex-encoded checksum, so parse it.
-        let Some(name) = self.name().ok().flatten() else {
-            return Some(Oid::ZERO_SHA1);
-        };
-        let format = if name.len() == raw::GIT_OID_SHA256_HEXSIZE {
-            ObjectFormat::Sha256
-        } else {
-            ObjectFormat::Sha1
-        };
-        Oid::from_str_ext(name, format).ok()
-    }
-
     /// Get the unique name for the resulting packfile.
     ///
     /// The packfile's name is derived from the packfile's content. This is only
@@ -355,10 +332,6 @@ mod tests {
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
-        #[allow(deprecated)]
-        {
-            assert!(builder.hash().unwrap().is_zero());
-        }
         assert!(builder.name().expect("Should return Ok result").is_none());
         assert_eq!(&*buf, &*empty_pack_header());
     }
@@ -381,11 +354,6 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         t!(builder.write(repo.path(), 0));
-        #[allow(deprecated)]
-        {
-            let oid = crate::Oid::from_str(EMPTY_PACKFILE_OID).unwrap();
-            assert_eq!(builder.hash().unwrap(), oid);
-        }
         assert_eq!(builder.name().unwrap(), Some(EMPTY_PACKFILE_OID));
     }
 
