@@ -396,6 +396,10 @@ pub enum BranchType {
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
     /// System-wide on Windows, for compatibility with portable git
+    #[deprecated(
+        since = "0.22.0",
+        note = "libgit2 no longer reads the ProgramData configuration"
+    )]
     ProgramData = 1,
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
@@ -932,7 +936,7 @@ impl ObjectType {
 
     /// Determine if the given git_object_t is a valid loose object type.
     pub fn is_loose(&self) -> bool {
-        unsafe { call!(raw::git_object_typeisloose(*self)) == 1 }
+        unsafe { call!(raw::git_object_type_is_valid(*self)) == 1 }
     }
 
     /// Convert a raw git_object_t to an ObjectType
@@ -995,6 +999,7 @@ impl fmt::Display for ReferenceType {
 impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
+        #[allow(deprecated)]
         match raw {
             raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
             raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
