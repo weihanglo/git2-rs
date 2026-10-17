@@ -47,6 +47,10 @@
     use `git_packbuilder_name` and `git_indexer_name`.
   - `GIT_CONFIG_LEVEL_PROGRAMDATA`, `git_config_find_programdata`,
     and `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR`, which libgit2 ignores.
+- ❗ Removed bindings that were already deprecated:
+  - `git_transfer_progress`: use `git_indexer_progress`.
+  - `git_oid_iszero`: use `git_oid_is_zero`.
+  - `git_odb_backend_malloc`: use `git_odb_backend_data_alloc`.
 
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
