@@ -49,6 +49,12 @@
 - ❗ Removed `RepositoryInitOptions::no_dotgit_dir()`, which no longer has an effect.
   Setting `workdir_path()` gives the same layout.
 - ❗ Removed the deprecated `PackBuilder::hash()`. Use `PackBuilder::name()` instead.
+- ❗ Removed APIs that were already deprecated:
+  - `Diff::format_email()`: use `Email::from_diff()`.
+  - `RepoBuilder::local()` and `RepoBuilder::hardlinks()`: use `RepoBuilder::clone_local()`.
+  - `Submodule::url_bytes()`: use `Submodule::opt_url_bytes()`.
+  - `Oid::zero()`: use `Oid::ZERO_SHA1`.
+  - `TransportProgress`: use `IndexerProgress`.
 
 ### Fixed
 
