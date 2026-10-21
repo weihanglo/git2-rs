@@ -87,20 +87,6 @@ impl<'a> Binding for Progress<'a> {
     }
 }
 
-/// Callback to be invoked while a transfer is in progress.
-///
-/// This callback will be periodically called with updates to the progress of
-/// the transfer so far. The return value indicates whether the transfer should
-/// continue. A return value of `false` will cancel the transfer.
-///
-/// * `progress` - the progress being made so far.
-#[deprecated(
-    since = "0.11.0",
-    note = "renamed to `IndexerProgress` to match upstream"
-)]
-#[allow(dead_code)]
-pub type TransportProgress<'a> = IndexerProgress<'a>;
-
 /// A stream to write and index a packfile
 ///
 /// This is equivalent to [`crate::OdbPackwriter`], but allows to store the pack
@@ -161,22 +147,11 @@ impl<'a> Indexer<'a> {
         opts.progress_cb = progress_cb;
         opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
         opts.verify = verify.into();
-
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            opts.mode = mode;
-            opts.oid_type = format.raw();
-            opts.odb = odb;
-            unsafe {
-                try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
-            }
+        opts.mode = mode;
+        opts.oid_type = format.raw();
+        opts.odb = odb;
+        unsafe {
+            try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
         }
 
         Ok(Self {
@@ -285,7 +260,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn indexer_sha256() {
         let (_td, repo_source) = crate::test::repo_init_sha256();
         let (_td, repo_target) = crate::test::repo_init_sha256();

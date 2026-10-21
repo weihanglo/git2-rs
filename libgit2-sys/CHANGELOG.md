@@ -1,5 +1,101 @@
 # Changelog
 
+## Unreleased
+[0.18.8...main](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.8+1.9.7...main)
+
+### Added
+
+- Added bindings for `git_config_backend_from_string` and `git_config_backend_memory_options`.
+  [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+- Added bindings for new libgit2 2.0 APIs:
+  `git_oid_from_string`, `git_oid_from_prefix`, `git_oid_from_raw`,
+  `git_object_id_options`, `git_object_id_options_init`,
+  `git_object_id_from_buffer`, `git_object_id_from_file`,
+  `git_object_type_is_valid`, `git_index_options_init`,
+  `git_refdb_t` with `git_repository_init_options::refdb_type`,
+  `git_refdb_backend_init_flag_t`, and the new `GIT_FEATURE_*` flags.
+- Added the `*_ext` functions
+  `git_diff_from_buffer_ext`, `git_index_new_ext`, `git_index_open_ext`,
+  `git_odb_new_ext`, `git_odb_open_ext`, and `git_repository_new_ext`.
+  They replace the `unstable-sha256` signatures of their base functions,
+  which keep their SHA-1-only signatures.
+- Added bindings under the current libgit2 names for APIs bound only by their deprecated names:
+  `git_credential` and its `git_credential_*` functions, types, and `GIT_CREDENTIAL_*` constants,
+  the `git_*_options_init` functions,
+  `git_blob_create_from_*`, `git_index_add_from_buffer`, `git_tag_create_from_buffer`,
+  `git_strarray_dispose`, `git_oidarray_dispose`,
+  `git_blame_hunkcount`, `git_blame_hunk_byindex`, `git_blame_hunk_byline`,
+  `git_revspec_t` with `GIT_REVSPEC_*`, `GIT_ERROR_SHA`,
+  `git_remote_completion_t`, and `git_push_transfer_progress_cb`.
+
+### Changed
+
+- ❗ Updated to libgit2 2.0.0-rc.1.
+  A system libgit2 must now be `>=2.0.0, <2.1.0`.
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  and `git_oid` always has room for a SHA-256 ID and its type.
+- ❗ `git_refdb_backend` has a new `init` callback after `version`.
+- The vendored build now compiles libgit2's bundled reftable library.
+- Declared the minimum supported Rust version as 1.87.
+  [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+
+### Removed
+
+- ❗ Removed `GIT_OBJECT_OFS_DELTA` and `GIT_OBJECT_REF_DELTA`, as libgit2 2.0 did.
+- ❗ Removed bindings that libgit2 2.0 deprecates:
+  - `GIT_OID_RAWSZ` and `GIT_OID_HEXSZ`:
+    use `GIT_OID_SHA1_SIZE` and `GIT_OID_SHA1_HEXSIZE`.
+  - `git_oid_fromraw`, `git_oid_fromstr`, `git_oid_fromstrn`, and `git_oid_fromstrp`:
+    use `git_oid_from_raw`, `git_oid_from_string`, and `git_oid_from_prefix`.
+  - `git_odb_hash` and `git_odb_hashfile`:
+    use `git_object_id_from_buffer` and `git_object_id_from_file`.
+  - `git_object_typeisloose`: use `git_object_type_is_valid`.
+  - `git_packbuilder_hash` and `git_indexer_hash`:
+    use `git_packbuilder_name` and `git_indexer_name`.
+  - `GIT_CONFIG_LEVEL_PROGRAMDATA`, `git_config_find_programdata`,
+    and `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR`, which libgit2 ignores.
+- ❗ Removed bindings that were already deprecated:
+  - `git_transfer_progress`: use `git_indexer_progress`.
+  - `git_oid_iszero`: use `git_oid_is_zero`.
+  - `git_odb_backend_malloc`: use `git_odb_backend_data_alloc`.
+- ❗ Removed the remaining bindings to libgit2's deprecated names.
+  Each has a current name with the same signature,
+  except where noted:
+  - `git_cred` and the `git_cred_*` / `GIT_CREDTYPE_*` items:
+    use `git_credential` and the `git_credential_*` / `GIT_CREDENTIAL_*` items.
+  - `git_*_init_options`: use `git_*_options_init`.
+  - `git_blob_create_from{buffer,disk,workdir,stream,stream_commit}`,
+    `git_index_add_frombuffer`, and `git_tag_create_frombuffer`:
+    use the `*_from_*` forms.
+  - `git_strarray_free` and `git_oidarray_free`: use `git_strarray_dispose` and `git_oidarray_dispose`.
+  - `git_blame_get_hunk_count`, `git_blame_get_hunk_byindex`, and `git_blame_get_hunk_byline`:
+    use `git_blame_hunkcount`, `git_blame_hunk_byindex`, and `git_blame_hunk_byline`,
+    which take and return `size_t` instead of `u32`.
+  - `git_revparse_mode_t` and `GIT_REVPARSE_*`: use `git_revspec_t` and `GIT_REVSPEC_*`.
+  - `GIT_ERROR_SHA1`: use `GIT_ERROR_SHA`.
+  - `git_remote_completion_type`, `git_push_transfer_progress`, and `git_transfer_progress_cb`:
+    use `git_remote_completion_t`, `git_push_transfer_progress_cb`, and `git_indexer_progress_cb`.
+  - `git_reference_is_valid_name` and `git_remote_is_valid_name`:
+    use `git_reference_name_is_valid` and `git_remote_name_is_valid`,
+    which report validity through an out parameter.
+  - `git_commit_signing_cb`, which has no replacement name:
+    `git_rebase_options::signing_cb` now spells out its type.
+  - `git_diff_format_email`, `git_diff_format_email_options`, and related items:
+    use `git_email_create_from_diff`.
+  - `git_buf_grow` and `git_buf_set`, which have no replacement.
+
+## 0.18.8+1.9.7 - 2026-08-21
+[0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
+
+### Changed
+
+- Updated to libgit2 [1.9.7](https://github.com/libgit2/libgit2/releases/tag/v1.9.7).
+  This fixes
+  [CVE-2026-5917](https://github.com/libgit2/libgit2/security/advisories/GHSA-xqj4-2j5v-rr75),
+  a potential command injection on the remote host
+  via unescaped repository paths in the libssh2 SSH transport.
+
 ## 0.18.7+1.9.6 - 2026-07-22
 [0.18.6...0.18.7](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.6+1.9.5...libgit2-sys-0.18.7+1.9.6)
 

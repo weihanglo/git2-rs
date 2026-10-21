@@ -395,10 +395,8 @@ pub enum BranchType {
 /// searching for config entries.
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
-    /// System-wide on Windows, for compatibility with portable git
-    ProgramData = 1,
     /// System-wide configuration file, e.g. /etc/gitconfig
-    System,
+    System = 2,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
     XDG,
     /// User-specific configuration, e.g. ~/.gitconfig
@@ -475,19 +473,19 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct CredentialType: u32 {
         #[allow(missing_docs)]
-        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32;
+        const USER_PASS_PLAINTEXT = raw::GIT_CREDENTIAL_USERPASS_PLAINTEXT as u32;
         #[allow(missing_docs)]
-        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32;
+        const SSH_KEY = raw::GIT_CREDENTIAL_SSH_KEY as u32;
         #[allow(missing_docs)]
-        const SSH_MEMORY = raw::GIT_CREDTYPE_SSH_MEMORY as u32;
+        const SSH_MEMORY = raw::GIT_CREDENTIAL_SSH_MEMORY as u32;
         #[allow(missing_docs)]
-        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32;
+        const SSH_CUSTOM = raw::GIT_CREDENTIAL_SSH_CUSTOM as u32;
         #[allow(missing_docs)]
-        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32;
+        const DEFAULT = raw::GIT_CREDENTIAL_DEFAULT as u32;
         #[allow(missing_docs)]
-        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32;
+        const SSH_INTERACTIVE = raw::GIT_CREDENTIAL_SSH_INTERACTIVE as u32;
         #[allow(missing_docs)]
-        const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32;
+        const USERNAME = raw::GIT_CREDENTIAL_USERNAME as u32;
     }
 }
 
@@ -605,11 +603,11 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct RevparseMode: u32 {
         /// The spec targeted a single object
-        const SINGLE = raw::GIT_REVPARSE_SINGLE as u32;
+        const SINGLE = raw::GIT_REVSPEC_SINGLE as u32;
         /// The spec targeted a range of commits
-        const RANGE = raw::GIT_REVPARSE_RANGE as u32;
+        const RANGE = raw::GIT_REVSPEC_RANGE as u32;
         /// The spec used the `...` operator, which invokes special semantics.
-        const MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32;
+        const MERGE_BASE = raw::GIT_REVSPEC_MERGE_BASE as u32;
     }
 }
 
@@ -932,7 +930,7 @@ impl ObjectType {
 
     /// Determine if the given git_object_t is a valid loose object type.
     pub fn is_loose(&self) -> bool {
-        unsafe { call!(raw::git_object_typeisloose(*self)) == 1 }
+        unsafe { call!(raw::git_object_type_is_valid(*self)) == 1 }
     }
 
     /// Convert a raw git_object_t to an ObjectType
@@ -996,7 +994,6 @@ impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
         match raw {
-            raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
             raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
             raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,

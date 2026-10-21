@@ -56,11 +56,6 @@ pub struct DiffFindOptions {
 }
 
 /// Control behavior of formatting emails
-pub struct DiffFormatEmailOptions {
-    raw: raw::git_diff_format_email_options,
-}
-
-/// Control behavior of formatting emails
 pub struct DiffPatchidOptions {
     raw: raw::git_diff_patchid_options,
 }
@@ -253,41 +248,6 @@ impl<'repo> Diff<'repo> {
         Ok(())
     }
 
-    /// Create an e-mail ready patch from a diff.
-    ///
-    /// Matches the format created by `git format-patch`
-    #[doc(hidden)]
-    #[deprecated(note = "refactored to `Email::from_diff` to match upstream")]
-    pub fn format_email(
-        &mut self,
-        patch_no: usize,
-        total_patches: usize,
-        commit: &crate::Commit<'repo>,
-        opts: Option<&mut DiffFormatEmailOptions>,
-    ) -> Result<Buf, Error> {
-        assert!(patch_no > 0);
-        assert!(patch_no <= total_patches);
-        let mut default = DiffFormatEmailOptions::default();
-        let raw_opts = opts.map_or(&mut default.raw, |opts| &mut opts.raw);
-        let summary = commit.summary_bytes().unwrap();
-        let mut message = commit.message_bytes();
-        assert!(message.starts_with(summary));
-        message = &message[summary.len()..];
-        raw_opts.patch_no = patch_no;
-        raw_opts.total_patches = total_patches;
-        let id = commit.id();
-        raw_opts.id = id.raw();
-        raw_opts.summary = summary.as_ptr() as *const _;
-        raw_opts.body = message.as_ptr() as *const _;
-        raw_opts.author = commit.author().raw();
-        let buf = Buf::new();
-        #[allow(deprecated)]
-        unsafe {
-            try_call!(raw::git_diff_format_email(buf.raw(), self.raw, &*raw_opts));
-        }
-        Ok(buf)
-    }
-
     /// Create a patch ID from a diff.
     pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
         let mut raw = crate::util::zeroed_raw_oid();
@@ -328,21 +288,13 @@ impl Diff<'static> {
         let data = buffer.as_ptr() as *const c_char;
         let len = buffer.len();
         // NOTE: Doesn't depend on repo, so lifetime can be 'static
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len, &mut opts));
-            }
+        let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe {
+            try_call!(raw::git_diff_from_buffer_ext(
+                &mut diff, data, len, &mut opts
+            ));
         }
         Ok(unsafe { Diff::from_raw(diff) })
     }
@@ -704,7 +656,7 @@ impl DiffOptions {
             old_prefix: None,
             new_prefix: None,
         };
-        assert_eq!(unsafe { raw::git_diff_init_options(&mut opts.raw, 1) }, 0);
+        assert_eq!(unsafe { raw::git_diff_options_init(&mut opts.raw, 1) }, 0);
         opts
     }
 
@@ -1374,7 +1326,7 @@ impl DiffFindOptions {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(
-            unsafe { raw::git_diff_find_init_options(&mut opts.raw, 1) },
+            unsafe { raw::git_diff_find_options_init(&mut opts.raw, 1) },
             0
         );
         opts
@@ -1537,44 +1489,6 @@ impl DiffFindOptions {
     }
 }
 
-impl Default for DiffFormatEmailOptions {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl DiffFormatEmailOptions {
-    /// Creates a new set of email options,
-    /// initialized to the default values
-    pub fn new() -> Self {
-        let mut opts = DiffFormatEmailOptions {
-            raw: unsafe { mem::zeroed() },
-        };
-        assert_eq!(
-            unsafe { raw::git_diff_format_email_options_init(&mut opts.raw, 1) },
-            0
-        );
-        opts
-    }
-
-    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
-        if val {
-            self.raw.flags |= opt;
-        } else {
-            self.raw.flags &= !opt;
-        }
-        self
-    }
-
-    /// Exclude `[PATCH]` from the subject header
-    pub fn exclude_subject_patch_header(&mut self, should_exclude: bool) -> &mut Self {
-        self.flag(
-            raw::GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER,
-            should_exclude,
-        )
-    }
-}
-
 impl DiffPatchidOptions {
     /// Creates a new set of patchid options,
     /// initialized to the default values
@@ -1605,7 +1519,6 @@ impl Default for DiffPatchidOptions {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
     use crate::{Delta, DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
@@ -1833,16 +1746,25 @@ mod tests {
             )
             .unwrap();
         let updated_commit = repo.find_commit(updated_commit).unwrap();
-        let mut diff = repo
+        let diff = repo
             .diff_tree_to_tree(
                 Some(&repo.find_tree(original_tree).unwrap()),
                 Some(&repo.find_tree(updated_tree).unwrap()),
                 None,
             )
             .unwrap();
-        #[allow(deprecated)]
-        let actual_email = diff.format_email(1, 1, &updated_commit, None).unwrap();
-        let actual_email = actual_email.as_str().unwrap();
+        let actual_email = crate::Email::from_diff(
+            &diff,
+            1,
+            1,
+            &updated_commit.id(),
+            COMMIT_MESSAGE,
+            "",
+            &author,
+            &mut crate::EmailCreateOptions::default(),
+        )
+        .unwrap();
+        let actual_email = std::str::from_utf8(actual_email.as_slice()).unwrap();
         assert!(
             actual_email.starts_with(EXPECTED_EMAIL_START),
             "Unexpected email:\n{}",
@@ -1915,7 +1837,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn diff_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let diff = repo.diff_tree_to_workdir(None, None).unwrap();
@@ -1931,7 +1852,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn diff_from_buffer_sha256() {
         // Minimal patch with SHA256 OID (64 chars)
         let patch = b"diff --git a/file.txt b/file.txt

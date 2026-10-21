@@ -788,7 +788,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut opts: raw::git_checkout_options = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -1157,7 +1157,7 @@ impl Repository {
         let ptr = data.as_ptr() as *const c_void;
         let len = data.len() as size_t;
         unsafe {
-            try_call!(raw::git_blob_create_frombuffer(
+            try_call!(raw::git_blob_create_from_buffer(
                 &mut raw,
                 self.raw(),
                 ptr,
@@ -1177,7 +1177,7 @@ impl Repository {
         let path = path.into_c_string()?;
         let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
-            try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(), path));
+            try_call!(raw::git_blob_create_from_disk(&mut raw, self.raw(), path));
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
@@ -1204,7 +1204,7 @@ impl Repository {
         };
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_blob_create_fromstream(&mut out, self.raw(), path));
+            try_call!(raw::git_blob_create_from_stream(&mut out, self.raw(), path));
             Ok(BlobWriter::from_raw(out))
         }
     }
@@ -2173,7 +2173,7 @@ impl Repository {
     pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder<'_>>) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2200,7 +2200,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2230,7 +2230,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2268,7 +2268,7 @@ impl Repository {
 
         let mut raw_checkout_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_checkout_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -3528,15 +3528,6 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// Normally a '/.git/' will be appended to the repo path for non-bare repos
-    /// (if it is not already there), but passing this flag prevents that
-    /// behavior.
-    ///
-    /// Defaults to false.
-    pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
-        self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
-    }
-
     /// Make the repo path (and workdir path) as needed. The ".git" directory
     /// will always be created regardless of this flag.
     ///
@@ -3632,7 +3623,7 @@ impl RepositoryInitOptions {
     /// Set the object format (hash algorithm) for the repository.
     ///
     /// The default is [`ObjectFormat::Sha1`].
-    /// Setting this to [`ObjectFormat::Sha256`] (requires `unstable-sha256`)
+    /// Setting this to [`ObjectFormat::Sha256`]
     /// will create a repository that uses SHA256 object IDs.
     pub fn object_format(&mut self, format: ObjectFormat) -> &mut RepositoryInitOptions {
         self.oid_type = Some(format.raw());
@@ -3654,7 +3645,7 @@ impl RepositoryInitOptions {
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {
         let mut opts = mem::zeroed();
         assert_eq!(
-            raw::git_repository_init_init_options(
+            raw::git_repository_init_options_init(
                 &mut opts,
                 raw::GIT_REPOSITORY_INIT_OPTIONS_VERSION
             ),
@@ -3667,7 +3658,6 @@ impl RepositoryInitOptions {
         opts.template_path = crate::call::convert(&self.template_path);
         opts.initial_head = crate::call::convert(&self.initial_head);
         opts.origin_url = crate::call::convert(&self.origin_url);
-        #[cfg(feature = "unstable-sha256")]
         if let Some(oid_type) = self.oid_type {
             opts.oid_type = oid_type;
         }
@@ -3690,7 +3680,6 @@ mod tests {
     use crate::AttrCheckFlags;
     use crate::Error;
     use crate::ObjectFormat;
-    #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
@@ -3719,7 +3708,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3741,6 +3729,20 @@ mod tests {
     }
 
     #[test]
+    fn init_with_workdir_path() {
+        let td = TempDir::new().unwrap();
+        let gitdir = td.path().join("gitdir");
+        let workdir = td.path().join("workdir");
+
+        let mut opts = crate::RepositoryInitOptions::new();
+        opts.workdir_path(&workdir);
+        let repo = Repository::init_opts(&gitdir, &opts).unwrap();
+        assert!(!repo.is_bare());
+        assert!(repo.path().ends_with("gitdir"));
+        assert!(repo.workdir().unwrap().ends_with("workdir"));
+    }
+
+    #[test]
     fn smoke_init_bare() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3752,7 +3754,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3788,7 +3789,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3831,7 +3831,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3857,7 +3856,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_checkout_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         repo.checkout_head(None).unwrap();
@@ -3885,7 +3883,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_revparse_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let rev = repo.revparse("HEAD").unwrap();
@@ -4086,7 +4083,6 @@ mod tests {
 
         let void_oid = match repo.object_format() {
             ObjectFormat::Sha1 => Oid::ZERO_SHA1,
-            #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => Oid::ZERO_SHA256,
         };
         assert!(repo.set_head_detached(void_oid).is_err());

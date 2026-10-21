@@ -181,19 +181,6 @@ impl<'repo> PackBuilder<'repo> {
         unsafe { raw::git_packbuilder_written(self.raw) }
     }
 
-    /// Get the packfile's hash. A packfile's name is derived from the sorted
-    /// hashing of all object names. This is only correct after the packfile
-    /// has been written.
-    #[deprecated = "use `name()` to retrieve the filename"]
-    #[allow(deprecated)]
-    pub fn hash(&self) -> Option<Oid> {
-        if self.object_count() == 0 {
-            unsafe { Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw))) }
-        } else {
-            None
-        }
-    }
-
     /// Get the unique name for the resulting packfile.
     ///
     /// The packfile's name is derived from the packfile's content. This is only
@@ -317,7 +304,6 @@ mod tests {
             .collect::<Vec<u8>>()
     }
 
-    #[cfg(feature = "unstable-sha256")]
     fn empty_pack_header_sha256() -> Vec<u8> {
         pack_header(0)
             .iter()
@@ -346,16 +332,11 @@ mod tests {
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
-        #[allow(deprecated)]
-        {
-            assert!(builder.hash().unwrap().is_zero());
-        }
         assert!(builder.name().expect("Should return Ok result").is_none());
         assert_eq!(&*buf, &*empty_pack_header());
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -373,17 +354,10 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         t!(builder.write(repo.path(), 0));
-        #[cfg(not(feature = "unstable-sha256"))]
-        #[allow(deprecated)]
-        {
-            let oid = crate::Oid::from_str(EMPTY_PACKFILE_OID).unwrap();
-            assert_eq!(builder.hash().unwrap(), oid);
-        }
         assert_eq!(builder.name().unwrap(), Some(EMPTY_PACKFILE_OID));
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_object_format() {
         // SHA256 hash of a packfile constructed without any objects in it
         const EMPTY_PACKFILE_OID_SHA256: &str =
@@ -408,7 +382,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_foreach_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -434,7 +407,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -462,7 +434,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -491,7 +462,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -517,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -541,7 +510,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -566,7 +534,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());

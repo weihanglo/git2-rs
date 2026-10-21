@@ -1,5 +1,94 @@
 # Changelog
 
+## Unreleased
+[0.21.0...main](https://github.com/rust-lang/git2-rs/compare/git2-0.21.0...main)
+
+### Added
+
+- Added `Config::create_from_str()` for building an in-memory configuration from a string.
+  [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+- Added `DiffDelta::similarity()`.
+  [#1285](https://github.com/rust-lang/git2-rs/pull/1285)
+- Implemented `Default` for `ApplyOptions`, `CherrypickOptions`, `DiffPatchidOptions`,
+  `RepositoryInitOptions`, `RevertOptions`, `WorktreeAddOptions`, and `WorktreePruneOptions`.
+  [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
+- Added `is_empty()` to `MessageTrailersStrs`, `MessageTrailersBytes`, `OdbObject`, and `Rebase`.
+  [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
+
+### Changed
+
+- ❗ Updated to libgit2 2.0.0-rc.1 via libgit2-sys 0.19.0.
+  A system libgit2 must now be 2.0.x.
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  and `ObjectFormat::Sha256`, `Oid::ZERO_SHA256`, and the `*_ext` methods are always available.
+- ❗ `Reference` equality and ordering now take the reference name into account,
+  following [libgit2#6346](https://github.com/libgit2/libgit2/pull/6346).
+- ❗ `RepositoryInitOptions::workdir_path()` no longer appends `.git` to the repository path.
+- ❗ `Branch::name()` now returns `Result<&str, Error>` instead of `Result<Option<&str>, Error>`,
+  and a non-UTF-8 name is an error.
+  [#1274](https://github.com/rust-lang/git2-rs/pull/1274)
+- ❗ `Repository::get_attr()` now returns an error for a non-UTF-8 value instead of `Ok(None)`.
+  [#1274](https://github.com/rust-lang/git2-rs/pull/1274)
+- ❗ `StringArray` iterators now yield `Result<&str, Error>` instead of `Result<Option<&str>, Error>`.
+  [#1266](https://github.com/rust-lang/git2-rs/pull/1266)
+- ❗ The `Refspec` returned by `Remote::get_refspec()` now borrows the `Remote`
+  instead of the `Repository`.
+  Holding it past the `Remote` was a use-after-free.
+  [#1287](https://github.com/rust-lang/git2-rs/pull/1287)
+- ❗ `CloneLocal` is now `#[non_exhaustive]`, and the hidden `__Nonexhaustive` variant is removed.
+  [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
+- `TreeWalkResult` now implements `From` instead of `Into` for its conversions to `i32` and `raw::git_treewalk_mode`.
+  [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
+- Declared the minimum supported Rust version as 1.87.
+  [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+
+### Removed
+
+- ❗ Removed `ConfigLevel::ProgramData`, which libgit2 2.0 ignores.
+- ❗ Removed `RepositoryInitOptions::no_dotgit_dir()`, which no longer has an effect.
+  Setting `workdir_path()` gives the same layout.
+- ❗ Removed the deprecated `PackBuilder::hash()`. Use `PackBuilder::name()` instead.
+- ❗ Removed APIs that were already deprecated:
+  - `Diff::format_email()`: use `Email::from_diff()`.
+  - `RepoBuilder::local()` and `RepoBuilder::hardlinks()`: use `RepoBuilder::clone_local()`.
+  - `Submodule::url_bytes()`: use `Submodule::opt_url_bytes()`.
+  - `Oid::zero()`: use `Oid::ZERO_SHA1`.
+  - `TransportProgress`: use `IndexerProgress`.
+
+### Fixed
+
+- These functions now return `false`, `None`, or an error instead of panicking
+  when a string argument contains a NUL byte:
+  `ObjectType::from_str()`, `Refspec::src_matches()`, `Refspec::dst_matches()`,
+  `Refspec::transform()`, `Refspec::rtransform()`, `Transaction::lock_ref()`,
+  `Transaction::set_target()`, `Transaction::set_symbolic_target()`,
+  `Transaction::set_reflog()`, `Transaction::remove()`, `Tree::get_name()`,
+  `Tree::get_name_bytes()`, `Remote::is_valid_name()`, and `Tag::is_valid_name()`.
+  [#1290](https://github.com/rust-lang/git2-rs/pull/1290)
+  [#1294](https://github.com/rust-lang/git2-rs/pull/1294)
+  [#1308](https://github.com/rust-lang/git2-rs/pull/1308)
+- Fixed `merge_file()` failing with an empty error message
+  when called before anything else initialized libgit2.
+  [#1315](https://github.com/rust-lang/git2-rs/pull/1315)
+- Fixed assertion failures in `Blame::blame_buffer()` with an empty buffer.
+  [#1289](https://github.com/rust-lang/git2-rs/pull/1289)
+- Fixed unsoundness in `MergeFileResult::content()` and `DiffBinaryFile::data()` for empty content.
+  [#1279](https://github.com/rust-lang/git2-rs/pull/1279)
+  [#1282](https://github.com/rust-lang/git2-rs/pull/1282)
+- The `Index::add_all()`, `Index::remove_all()`, and `Index::update_all()` callbacks
+  no longer panic when the matched pathspec is empty;
+  they receive an empty slice instead.
+  [#1267](https://github.com/rust-lang/git2-rs/pull/1267)
+  [#1273](https://github.com/rust-lang/git2-rs/pull/1273)
+
+### Documentation
+
+- Fixed `RepoBuilder` documentation indentation.
+  [#1298](https://github.com/rust-lang/git2-rs/pull/1298)
+- Fixed intra-doc links.
+  [#1319](https://github.com/rust-lang/git2-rs/pull/1319)
+
 ## 0.21.0 - 2026-05-18
 [0.20.4...main](https://github.com/rust-lang/git2-rs/compare/git2-0.20.4...main)
 

@@ -5,13 +5,11 @@ fn main() {
     let mut cfg = ctest2::TestGenerator::new();
     if let Some(root) = env::var_os("DEP_GIT2_ROOT") {
         cfg.include(PathBuf::from(root).join("include"));
-    }
-
-    // Enable the unstable-sha256 rust cfg
-    // so ctest2 sees the correct function signatures
-    if env::var("CARGO_FEATURE_UNSTABLE_SHA256").is_ok() {
-        cfg.cfg("feature", Some("unstable-sha256"));
-        cfg.define("GIT_EXPERIMENTAL_SHA256", Some("1"));
+        // The vendored libgit2 is built with `GIT_STATIC`,
+        // so declare its API the same way instead of as `dllimport`.
+        if env::var("CARGO_CFG_WINDOWS").is_ok() {
+            cfg.define("GIT_STATIC", None);
+        }
     }
 
     cfg.header("git2.h")
@@ -22,11 +20,14 @@ fn main() {
         .header("git2/sys/odb_backend.h")
         .header("git2/sys/mempack.h")
         .header("git2/sys/repository.h")
-        .header("git2/sys/cred.h")
+        .header("git2/sys/credential.h")
         .header("git2/sys/email.h")
         .header("git2/sys/config.h")
-        .header("git2/cred_helpers.h")
-        .type_name(|s, _, _| s.to_string());
+        .header("git2/credential_helpers.h")
+        .type_name(|s, _, _| match s {
+            "git_refdb_mode_t" => "mode_t".to_string(),
+            _ => s.to_string(),
+        });
     cfg.field_name(|_, f| match f {
         "kind" => "type".to_string(),
         _ => f.to_string(),
@@ -47,9 +48,15 @@ fn main() {
     cfg.skip_signededness(|s| match s {
         s if s.ends_with("_cb") => true,
         s if s.ends_with("_callback") => true,
-        "git_push_transfer_progress" | "git_push_negotiation" | "git_packbuilder_progress" => true,
+        "git_push_negotiation" | "git_packbuilder_progress" => true,
         _ => false,
     });
+
+    // `git2/sys/refdb_backend.h` uses `mode_t`, which MSVC lacks.
+    // libgit2 typedefs it internally in `msvc-compat.h`, not in a public header.
+    if env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        cfg.define("mode_t", Some("unsigned short"));
+    }
 
     // GIT_FILEMODE_BLOB_GROUP_WRITABLE is not a public const in libgit2
     cfg.define("GIT_FILEMODE_BLOB_GROUP_WRITABLE", Some("0100664"));
