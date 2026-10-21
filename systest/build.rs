@@ -20,10 +20,10 @@ fn main() {
         .header("git2/sys/odb_backend.h")
         .header("git2/sys/mempack.h")
         .header("git2/sys/repository.h")
-        .header("git2/sys/cred.h")
+        .header("git2/sys/credential.h")
         .header("git2/sys/email.h")
         .header("git2/sys/config.h")
-        .header("git2/cred_helpers.h")
+        .header("git2/credential_helpers.h")
         .type_name(|s, _, _| match s {
             "git_refdb_mode_t" => "mode_t".to_string(),
             _ => s.to_string(),
@@ -48,7 +48,7 @@ fn main() {
     cfg.skip_signededness(|s| match s {
         s if s.ends_with("_cb") => true,
         s if s.ends_with("_callback") => true,
-        "git_push_transfer_progress" | "git_push_negotiation" | "git_packbuilder_progress" => true,
+        "git_push_negotiation" | "git_packbuilder_progress" => true,
         _ => false,
     });
 
@@ -62,12 +62,7 @@ fn main() {
     cfg.define("GIT_FILEMODE_BLOB_GROUP_WRITABLE", Some("0100664"));
 
     // not entirely sure why this is failing...
-    cfg.skip_roundtrip(|t| {
-        t == "git_clone_options"
-            || t == "git_submodule_update_options"
-            // ctest2 sees differing padding bytes through this deprecated typedef alias.
-            || t == "git_cred"
-    });
+    cfg.skip_roundtrip(|t| t == "git_clone_options" || t == "git_submodule_update_options");
 
     cfg.skip_type(|t| t == "__enum_ty");
     cfg.generate("../libgit2-sys/lib.rs", "all.rs");

@@ -59,6 +59,31 @@
   - `git_transfer_progress`: use `git_indexer_progress`.
   - `git_oid_iszero`: use `git_oid_is_zero`.
   - `git_odb_backend_malloc`: use `git_odb_backend_data_alloc`.
+- ❗ Removed the remaining bindings to libgit2's deprecated names.
+  Each has a current name with the same signature,
+  except where noted:
+  - `git_cred` and the `git_cred_*` / `GIT_CREDTYPE_*` items:
+    use `git_credential` and the `git_credential_*` / `GIT_CREDENTIAL_*` items.
+  - `git_*_init_options`: use `git_*_options_init`.
+  - `git_blob_create_from{buffer,disk,workdir,stream,stream_commit}`,
+    `git_index_add_frombuffer`, and `git_tag_create_frombuffer`:
+    use the `*_from_*` forms.
+  - `git_strarray_free` and `git_oidarray_free`: use `git_strarray_dispose` and `git_oidarray_dispose`.
+  - `git_blame_get_hunk_count`, `git_blame_get_hunk_byindex`, and `git_blame_get_hunk_byline`:
+    use `git_blame_hunkcount`, `git_blame_hunk_byindex`, and `git_blame_hunk_byline`,
+    which take and return `size_t` instead of `u32`.
+  - `git_revparse_mode_t` and `GIT_REVPARSE_*`: use `git_revspec_t` and `GIT_REVSPEC_*`.
+  - `GIT_ERROR_SHA1`: use `GIT_ERROR_SHA`.
+  - `git_remote_completion_type`, `git_push_transfer_progress`, and `git_transfer_progress_cb`:
+    use `git_remote_completion_t`, `git_push_transfer_progress_cb`, and `git_indexer_progress_cb`.
+  - `git_reference_is_valid_name` and `git_remote_is_valid_name`:
+    use `git_reference_name_is_valid` and `git_remote_name_is_valid`,
+    which report validity through an out parameter.
+  - `git_commit_signing_cb`, which has no replacement name:
+    `git_rebase_options::signing_cb` now spells out its type.
+  - `git_diff_format_email`, `git_diff_format_email_options`, and related items:
+    use `git_email_create_from_diff`.
+  - `git_buf_grow` and `git_buf_set`, which have no replacement.
 
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)

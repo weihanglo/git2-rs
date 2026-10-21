@@ -272,11 +272,6 @@ git_enum! {
     }
 }
 
-pub type git_revparse_mode_t = git_revspec_t;
-pub const GIT_REVPARSE_SINGLE: git_revspec_t = GIT_REVSPEC_SINGLE;
-pub const GIT_REVPARSE_RANGE: git_revspec_t = GIT_REVSPEC_RANGE;
-pub const GIT_REVPARSE_MERGE_BASE: git_revspec_t = GIT_REVSPEC_MERGE_BASE;
-
 git_enum! {
     pub enum git_error_code: c_int {
         GIT_OK = 0,
@@ -357,8 +352,6 @@ git_enum! {
         GIT_ERROR_HTTP,
     }
 }
-
-pub const GIT_ERROR_SHA1: git_error_t = GIT_ERROR_SHA;
 
 git_enum! {
     pub enum git_repository_state_t {
@@ -565,8 +558,6 @@ git_enum! {
     }
 }
 
-pub type git_remote_completion_type = git_remote_completion_t;
-
 pub type git_transport_message_cb =
     Option<extern "C" fn(*const c_char, c_int, *mut c_void) -> c_int>;
 pub type git_credential_acquire_cb = Option<
@@ -578,14 +569,10 @@ pub type git_credential_acquire_cb = Option<
         *mut c_void,
     ) -> c_int,
 >;
-pub type git_cred_acquire_cb = git_credential_acquire_cb;
-pub type git_transfer_progress_cb =
-    Option<extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int>;
 pub type git_packbuilder_progress =
     Option<extern "C" fn(git_packbuilder_stage_t, c_uint, c_uint, *mut c_void) -> c_int>;
 pub type git_push_transfer_progress_cb =
     Option<extern "C" fn(c_uint, c_uint, size_t, *mut c_void) -> c_int>;
-pub type git_push_transfer_progress = git_push_transfer_progress_cb;
 pub type git_transport_certificate_check_cb =
     Option<extern "C" fn(*mut git_cert, c_int, *const c_char, *mut c_void) -> c_int>;
 pub type git_push_negotiation =
@@ -1088,16 +1075,6 @@ git_enum! {
     }
 }
 
-pub type git_cred = git_credential;
-pub type git_credtype_t = git_credential_t;
-pub const GIT_CREDTYPE_USERPASS_PLAINTEXT: git_credential_t = GIT_CREDENTIAL_USERPASS_PLAINTEXT;
-pub const GIT_CREDTYPE_SSH_KEY: git_credential_t = GIT_CREDENTIAL_SSH_KEY;
-pub const GIT_CREDTYPE_SSH_CUSTOM: git_credential_t = GIT_CREDENTIAL_SSH_CUSTOM;
-pub const GIT_CREDTYPE_DEFAULT: git_credential_t = GIT_CREDENTIAL_DEFAULT;
-pub const GIT_CREDTYPE_SSH_INTERACTIVE: git_credential_t = GIT_CREDENTIAL_SSH_INTERACTIVE;
-pub const GIT_CREDTYPE_USERNAME: git_credential_t = GIT_CREDENTIAL_USERNAME;
-pub const GIT_CREDTYPE_SSH_MEMORY: git_credential_t = GIT_CREDENTIAL_SSH_MEMORY;
-
 pub type git_credential_ssh_interactive_cb = Option<
     extern "C" fn(
         name: *const c_char,
@@ -1111,8 +1088,6 @@ pub type git_credential_ssh_interactive_cb = Option<
     ),
 >;
 
-pub type git_cred_ssh_interactive_callback = git_credential_ssh_interactive_cb;
-
 pub type git_credential_sign_cb = Option<
     extern "C" fn(
         session: *mut LIBSSH2_SESSION,
@@ -1123,8 +1098,6 @@ pub type git_credential_sign_cb = Option<
         abstrakt: *mut *mut c_void,
     ),
 >;
-
-pub type git_cred_sign_callback = git_credential_sign_cb;
 
 pub enum LIBSSH2_SESSION {}
 pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
@@ -1503,23 +1476,6 @@ pub const GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE: u32 = 1 << 13;
 pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
 pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY: u32 = 1 << 15;
 pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
-
-#[repr(C)]
-pub struct git_diff_format_email_options {
-    pub version: c_uint,
-    pub flags: u32,
-    pub patch_no: usize,
-    pub total_patches: usize,
-    pub id: *const git_oid,
-    pub summary: *const c_char,
-    pub body: *const c_char,
-    pub author: *const git_signature,
-}
-
-pub const GIT_DIFF_FORMAT_EMAIL_OPTIONS_VERSION: c_uint = 1;
-
-pub const GIT_DIFF_FORMAT_EMAIL_NONE: u32 = 0;
-pub const GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER: u32 = 1 << 0;
 
 #[repr(C)]
 pub struct git_diff_patchid_options {
@@ -2091,15 +2047,6 @@ pub type git_packbuilder_foreach_cb =
 pub type git_odb_foreach_cb =
     Option<extern "C" fn(id: *const git_oid, payload: *mut c_void) -> c_int>;
 
-pub type git_commit_signing_cb = Option<
-    extern "C" fn(
-        signature: *mut git_buf,
-        signature_field: *mut git_buf,
-        commit_content: *const c_char,
-        payload: *mut c_void,
-    ) -> c_int,
->;
-
 pub type git_commit_create_cb = Option<
     extern "C" fn(
         *mut git_oid,
@@ -2125,7 +2072,14 @@ pub struct git_rebase_options {
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
     pub commit_create_cb: git_commit_create_cb,
-    pub signing_cb: git_commit_signing_cb,
+    pub signing_cb: Option<
+        extern "C" fn(
+            signature: *mut git_buf,
+            signature_field: *mut git_buf,
+            commit_content: *const c_char,
+            payload: *mut c_void,
+        ) -> c_int,
+    >,
     pub payload: *mut c_void,
 }
 
@@ -2401,10 +2355,6 @@ extern "C" {
         repo_path: *const c_char,
         opts: *mut git_repository_init_options,
     ) -> c_int;
-    pub fn git_repository_init_init_options(
-        opts: *mut git_repository_init_options,
-        version: c_uint,
-    ) -> c_int;
     pub fn git_repository_init_options_init(
         opts: *mut git_repository_init_options,
         version: c_uint,
@@ -2640,7 +2590,6 @@ extern "C" {
         remote: *const git_remote,
     ) -> c_int;
     pub fn git_remote_get_refspec(remote: *const git_remote, n: size_t) -> *const git_refspec;
-    pub fn git_remote_is_valid_name(remote_name: *const c_char) -> c_int;
     pub fn git_remote_name_is_valid(valid: *mut c_int, remote_name: *const c_char) -> c_int;
     pub fn git_remote_list(out: *mut git_strarray, repo: *mut git_repository) -> c_int;
     pub fn git_remote_rename(
@@ -2678,7 +2627,6 @@ extern "C" {
         pushurl: *const c_char,
     ) -> c_int;
     pub fn git_remote_init_callbacks(opts: *mut git_remote_callbacks, version: c_uint) -> c_int;
-    pub fn git_fetch_init_options(opts: *mut git_fetch_options, version: c_uint) -> c_int;
     pub fn git_fetch_options_init(opts: *mut git_fetch_options, version: c_uint) -> c_int;
     pub fn git_remote_stats(remote: *mut git_remote) -> *const git_indexer_progress;
     pub fn git_remote_ls(
@@ -2718,11 +2666,9 @@ extern "C" {
     ) -> c_int;
 
     // strarray
-    pub fn git_strarray_free(array: *mut git_strarray);
     pub fn git_strarray_dispose(array: *mut git_strarray);
 
     // oidarray
-    pub fn git_oidarray_free(array: *mut git_oidarray);
     pub fn git_oidarray_dispose(array: *mut git_oidarray);
 
     // signature
@@ -2759,7 +2705,6 @@ extern "C" {
         idx: size_t,
     ) -> *const git_status_entry;
     pub fn git_status_list_free(list: *mut git_status_list);
-    pub fn git_status_init_options(opts: *mut git_status_options, version: c_uint) -> c_int;
     pub fn git_status_options_init(opts: *mut git_status_options, version: c_uint) -> c_int;
     pub fn git_status_file(
         status_flags: *mut c_uint,
@@ -2779,7 +2724,6 @@ extern "C" {
         local_path: *const c_char,
         options: *const git_clone_options,
     ) -> c_int;
-    pub fn git_clone_init_options(opts: *mut git_clone_options, version: c_uint) -> c_int;
     pub fn git_clone_options_init(opts: *mut git_clone_options, version: c_uint) -> c_int;
 
     // reset
@@ -2804,7 +2748,6 @@ extern "C" {
     pub fn git_reference_is_note(r: *const git_reference) -> c_int;
     pub fn git_reference_is_remote(r: *const git_reference) -> c_int;
     pub fn git_reference_is_tag(r: *const git_reference) -> c_int;
-    pub fn git_reference_is_valid_name(name: *const c_char) -> c_int;
     pub fn git_reference_name_is_valid(valid: *mut c_int, refname: *const c_char) -> c_int;
     pub fn git_reference_lookup(
         out: *mut *mut git_reference,
@@ -2931,10 +2874,6 @@ extern "C" {
         options: *const git_stash_save_options,
     ) -> c_int;
 
-    pub fn git_stash_apply_init_options(
-        opts: *mut git_stash_apply_options,
-        version: c_uint,
-    ) -> c_int;
     pub fn git_stash_apply_options_init(
         opts: *mut git_stash_apply_options,
         version: c_uint,
@@ -3026,10 +2965,6 @@ extern "C" {
         init: c_int,
         options: *mut git_submodule_update_options,
     ) -> c_int;
-    pub fn git_submodule_update_init_options(
-        options: *mut git_submodule_update_options,
-        version: c_uint,
-    ) -> c_int;
     pub fn git_submodule_update_options_init(
         options: *mut git_submodule_update_options,
         version: c_uint,
@@ -3065,51 +3000,26 @@ extern "C" {
     ) -> c_int;
     pub fn git_blob_rawcontent(blob: *const git_blob) -> *const c_void;
     pub fn git_blob_rawsize(blob: *const git_blob) -> git_object_size_t;
-    pub fn git_blob_create_frombuffer(
-        id: *mut git_oid,
-        repo: *mut git_repository,
-        buffer: *const c_void,
-        len: size_t,
-    ) -> c_int;
     pub fn git_blob_create_from_buffer(
         id: *mut git_oid,
         repo: *mut git_repository,
         buffer: *const c_void,
         len: size_t,
     ) -> c_int;
-    pub fn git_blob_create_fromdisk(
-        id: *mut git_oid,
-        repo: *mut git_repository,
-        path: *const c_char,
-    ) -> c_int;
     pub fn git_blob_create_from_disk(
         id: *mut git_oid,
         repo: *mut git_repository,
         path: *const c_char,
-    ) -> c_int;
-    pub fn git_blob_create_fromworkdir(
-        id: *mut git_oid,
-        repo: *mut git_repository,
-        relative_path: *const c_char,
     ) -> c_int;
     pub fn git_blob_create_from_workdir(
         id: *mut git_oid,
         repo: *mut git_repository,
         relative_path: *const c_char,
     ) -> c_int;
-    pub fn git_blob_create_fromstream(
-        out: *mut *mut git_writestream,
-        repo: *mut git_repository,
-        hintpath: *const c_char,
-    ) -> c_int;
     pub fn git_blob_create_from_stream(
         out: *mut *mut git_writestream,
         repo: *mut git_repository,
         hintpath: *const c_char,
-    ) -> c_int;
-    pub fn git_blob_create_fromstream_commit(
-        id: *mut git_oid,
-        stream: *mut git_writestream,
     ) -> c_int;
     pub fn git_blob_create_from_stream_commit(
         id: *mut git_oid,
@@ -3193,8 +3103,6 @@ extern "C" {
 
     // buf
     pub fn git_buf_dispose(buffer: *mut git_buf);
-    pub fn git_buf_grow(buffer: *mut git_buf, target_size: size_t) -> c_int;
-    pub fn git_buf_set(buffer: *mut git_buf, data: *const c_void, datalen: size_t) -> c_int;
 
     // commit
     pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
@@ -3383,12 +3291,6 @@ extern "C" {
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_index_add_bypath(index: *mut git_index, path: *const c_char) -> c_int;
-    pub fn git_index_add_frombuffer(
-        index: *mut git_index,
-        entry: *const git_index_entry,
-        buffer: *const c_void,
-        len: size_t,
-    ) -> c_int;
     pub fn git_index_add_from_buffer(
         index: *mut git_index,
         entry: *const git_index_entry,
@@ -3604,18 +3506,8 @@ extern "C" {
     pub fn git_attr_value(value: *const c_char) -> git_attr_value_t;
 
     // cred
-    pub fn git_cred_default_new(out: *mut *mut git_cred) -> c_int;
     pub fn git_credential_default_new(out: *mut *mut git_credential) -> c_int;
-    pub fn git_cred_has_username(cred: *mut git_cred) -> c_int;
     pub fn git_credential_has_username(cred: *mut git_credential) -> c_int;
-    pub fn git_cred_ssh_custom_new(
-        out: *mut *mut git_cred,
-        username: *const c_char,
-        publickey: *const c_char,
-        publickey_len: size_t,
-        sign_callback: git_cred_sign_callback,
-        payload: *mut c_void,
-    ) -> c_int;
     pub fn git_credential_ssh_custom_new(
         out: *mut *mut git_credential,
         username: *const c_char,
@@ -3624,39 +3516,18 @@ extern "C" {
         sign_callback: git_credential_sign_cb,
         payload: *mut c_void,
     ) -> c_int;
-    pub fn git_cred_ssh_interactive_new(
-        out: *mut *mut git_cred,
-        username: *const c_char,
-        prompt_callback: git_cred_ssh_interactive_callback,
-        payload: *mut c_void,
-    ) -> c_int;
     pub fn git_credential_ssh_interactive_new(
         out: *mut *mut git_credential,
         username: *const c_char,
         prompt_callback: git_credential_ssh_interactive_cb,
         payload: *mut c_void,
     ) -> c_int;
-    pub fn git_cred_ssh_key_from_agent(out: *mut *mut git_cred, username: *const c_char) -> c_int;
     pub fn git_credential_ssh_key_from_agent(
         out: *mut *mut git_credential,
         username: *const c_char,
     ) -> c_int;
-    pub fn git_cred_ssh_key_new(
-        out: *mut *mut git_cred,
-        username: *const c_char,
-        publickey: *const c_char,
-        privatekey: *const c_char,
-        passphrase: *const c_char,
-    ) -> c_int;
     pub fn git_credential_ssh_key_new(
         out: *mut *mut git_credential,
-        username: *const c_char,
-        publickey: *const c_char,
-        privatekey: *const c_char,
-        passphrase: *const c_char,
-    ) -> c_int;
-    pub fn git_cred_ssh_key_memory_new(
-        out: *mut *mut git_cred,
         username: *const c_char,
         publickey: *const c_char,
         privatekey: *const c_char,
@@ -3669,13 +3540,6 @@ extern "C" {
         privatekey: *const c_char,
         passphrase: *const c_char,
     ) -> c_int;
-    pub fn git_cred_userpass(
-        cred: *mut *mut git_cred,
-        url: *const c_char,
-        user_from_url: *const c_char,
-        allowed_types: c_uint,
-        payload: *mut c_void,
-    ) -> c_int;
     pub fn git_credential_userpass(
         cred: *mut *mut git_credential,
         url: *const c_char,
@@ -3683,17 +3547,11 @@ extern "C" {
         allowed_types: c_uint,
         payload: *mut c_void,
     ) -> c_int;
-    pub fn git_cred_userpass_plaintext_new(
-        out: *mut *mut git_cred,
-        username: *const c_char,
-        password: *const c_char,
-    ) -> c_int;
     pub fn git_credential_userpass_plaintext_new(
         out: *mut *mut git_credential,
         username: *const c_char,
         password: *const c_char,
     ) -> c_int;
-    pub fn git_cred_username_new(cred: *mut *mut git_cred, username: *const c_char) -> c_int;
     pub fn git_credential_username_new(
         cred: *mut *mut git_credential,
         username: *const c_char,
@@ -3715,12 +3573,6 @@ extern "C" {
         target: *const git_object,
         tagger: *const git_signature,
         message: *const c_char,
-        force: c_int,
-    ) -> c_int;
-    pub fn git_tag_create_frombuffer(
-        oid: *mut git_oid,
-        repo: *mut git_repository,
-        buffer: *const c_char,
         force: c_int,
     ) -> c_int;
     pub fn git_tag_create_from_buffer(
@@ -3783,7 +3635,6 @@ extern "C" {
         treeish: *const git_object,
         opts: *const git_checkout_options,
     ) -> c_int;
-    pub fn git_checkout_init_options(opts: *mut git_checkout_options, version: c_uint) -> c_int;
     pub fn git_checkout_options_init(opts: *mut git_checkout_options, version: c_uint) -> c_int;
 
     // merge
@@ -3802,7 +3653,6 @@ extern "C" {
         oid: *const git_oid,
     ) -> c_int;
     pub fn git_annotated_commit_free(commit: *mut git_annotated_commit);
-    pub fn git_merge_init_options(opts: *mut git_merge_options, version: c_uint) -> c_int;
     pub fn git_merge_options_init(opts: *mut git_merge_options, version: c_uint) -> c_int;
     pub fn git_merge(
         repo: *mut git_repository,
@@ -3907,13 +3757,7 @@ extern "C" {
     ) -> c_int;
     pub fn git_blame_free(blame: *mut git_blame);
 
-    pub fn git_blame_init_options(opts: *mut git_blame_options, version: c_uint) -> c_int;
     pub fn git_blame_options_init(opts: *mut git_blame_options, version: c_uint) -> c_int;
-    pub fn git_blame_get_hunk_count(blame: *mut git_blame) -> u32;
-
-    pub fn git_blame_get_hunk_byline(blame: *mut git_blame, lineno: usize)
-        -> *const git_blame_hunk;
-    pub fn git_blame_get_hunk_byindex(blame: *mut git_blame, index: u32) -> *const git_blame_hunk;
     pub fn git_blame_hunkcount(blame: *mut git_blame) -> size_t;
     pub fn git_blame_hunk_byindex(blame: *mut git_blame, index: size_t) -> *const git_blame_hunk;
     pub fn git_blame_hunk_byline(blame: *mut git_blame, lineno: size_t) -> *const git_blame_hunk;
@@ -4103,7 +3947,6 @@ extern "C" {
         diff: *mut git_diff,
         options: *const git_diff_find_options,
     ) -> c_int;
-    pub fn git_diff_find_init_options(opts: *mut git_diff_find_options, version: c_uint) -> c_int;
     pub fn git_diff_find_options_init(opts: *mut git_diff_find_options, version: c_uint) -> c_int;
     pub fn git_diff_foreach(
         diff: *mut git_diff,
@@ -4129,7 +3972,6 @@ extern "C" {
         index: *mut git_index,
         opts: *const git_diff_options,
     ) -> c_int;
-    pub fn git_diff_init_options(opts: *mut git_diff_options, version: c_uint) -> c_int;
     pub fn git_diff_options_init(opts: *mut git_diff_options, version: c_uint) -> c_int;
     pub fn git_diff_is_sorted_icase(diff: *const git_diff) -> c_int;
     pub fn git_diff_merge(onto: *mut git_diff, from: *const git_diff) -> c_int;
@@ -4191,16 +4033,6 @@ extern "C" {
         repo: *mut git_repository,
         commit: *const git_oid,
         ancestor: *const git_oid,
-    ) -> c_int;
-
-    pub fn git_diff_format_email(
-        out: *mut git_buf,
-        diff: *mut git_diff,
-        opts: *const git_diff_format_email_options,
-    ) -> c_int;
-    pub fn git_diff_format_email_options_init(
-        opts: *mut git_diff_format_email_options,
-        version: c_uint,
     ) -> c_int;
 
     pub fn git_diff_patchid(
@@ -4568,7 +4400,6 @@ extern "C" {
     pub fn git_refdb_free(refdb: *mut git_refdb);
 
     // rebase
-    pub fn git_rebase_init_options(opts: *mut git_rebase_options, version: c_uint) -> c_int;
     pub fn git_rebase_options_init(opts: *mut git_rebase_options, version: c_uint) -> c_int;
     pub fn git_rebase_init(
         out: *mut *mut git_rebase,
@@ -4609,8 +4440,6 @@ extern "C" {
     pub fn git_rebase_free(rebase: *mut git_rebase);
 
     // cherrypick
-    pub fn git_cherrypick_init_options(opts: *mut git_cherrypick_options, version: c_uint)
-        -> c_int;
     pub fn git_cherrypick_options_init(opts: *mut git_cherrypick_options, version: c_uint)
         -> c_int;
     pub fn git_cherrypick(
