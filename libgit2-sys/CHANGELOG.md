@@ -19,6 +19,14 @@
   `git_odb_new_ext`, `git_odb_open_ext`, and `git_repository_new_ext`.
   They replace the `unstable-sha256` signatures of their base functions,
   which keep their SHA-1-only signatures.
+- Added bindings under the current libgit2 names for APIs bound only by their deprecated names:
+  `git_credential` and its `git_credential_*` functions, types, and `GIT_CREDENTIAL_*` constants,
+  the `git_*_options_init` functions,
+  `git_blob_create_from_*`, `git_index_add_from_buffer`, `git_tag_create_from_buffer`,
+  `git_strarray_dispose`, `git_oidarray_dispose`,
+  `git_blame_hunkcount`, `git_blame_hunk_byindex`, `git_blame_hunk_byline`,
+  `git_revspec_t` with `GIT_REVSPEC_*`, `GIT_ERROR_SHA`,
+  `git_remote_completion_t`, and `git_push_transfer_progress_cb`.
 
 ### Changed
 
